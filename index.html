@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Kelime Oyunu</title>
+	<link rel="stylesheet" type="text/css" href="./style.css">
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script type="text/javascript" src="data.json"></script>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-vSIIfh2YWi9wW0r9iZe7RJPrKwp6bG+s9QZMoITbCckVJqGCCRhc+ccxNcdpHuYu" crossorigin="anonymous">
+<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.7.6/lottie.min.js" integrity="sha512-BB7rb8ZBAxtdJdB7nwDijJH9NC+648xSzviK9Itm+5APTtdpgKz1+82bDl4znz/FBhd0R7pJ/gQtomnMpZYzRw==" crossorigin="anonymous"></script>
+
+
+	<script type="text/javascript">
+		var level = 0;
+		var gameData = JSON.parse(dataS);
+		function setGame(gameData, level){
+			$('#animation').css("display", "none");
+			if(level > 0){
+				$('#animation').css("display", "block");
+				konfeti.stop();
+				konfeti.play();
+				let audio = document.getElementById("soundEffect");
+				audio.play();
+			}
+
+			gameData[level].harfler.forEach(function(item, index){
+				$(".randomLetter").append('<div class="absoluteLet"><div class="let" data-id="'+index+'">'+item+'</div></div>');
+			});
+			let karakter = gameData[level].harfler.length;
+			let aci = 360/karakter;
+			$('.absoluteLet').each(function(index, item){
+				let yatay = aci*index;
+				$(item).css({'transform': 'rotate('+ yatay +'deg)'});
+				$(item).children().css({'transform': 'rotate('+ -1*yatay +'deg)'});;
+			});
+			let html = "";
+			gameData[level].kelimeler.forEach(function(item, index){
+				html += "<div class='letter' data-id='"+index+"' data-valid='0' >";
+
+				for(let i = 0; i<item.length; i++){
+					html+= "<div class='letter-item'>_</div>";
+				}
+				html += "</div>";
+				$(".text").html(html);
+			});
+		}
+		function checkAnswer(gameData, level, answer){
+			let isTrue = true;
+			console.log(level);
+			gameData[level].kelimeler.forEach(function(item, index){
+				if(item.toString() === answer.toString()){
+					isTrue = false;
+					$(".draggable").css("color", "green");
+					for(let i = 0; i<answer.length; i++){
+						$($(".letter[data-id = "+index+"]").children()[i]).html(answer[i]);
+						$(".letter[data-id = "+index+"]").attr("data-valid","1");
+					}
+					setTimeout(function(){
+						$(".draggable").css("color", "white");
+					},2000);
+				}
+
+			});
+			if(isTrue){
+				$(".draggable").css("color", "red");
+					setTimeout(function(){
+						$(".draggable").css("color", "white");
+				},2000);
+			}
+		}
+		function checkTrues(gameData){
+			let sum = 0;
+			$('.letter').each(function(index, item){
+				sum += parseInt($(item).attr("data-valid"));
+				console.log($(item).attr("data-valid"));
+			});
+			if(sum == gameData[level].kelimeler.length){
+				level++;
+				$(".absoluteLet").remove();
+				setGame(gameData, level);
+			}
+		}
+
+		window.onload = function(){
+			var yOffset = $('.draggable').offset().top;
+			var xOffset = $('.draggable').offset().left;
+			setGame(gameData, level);
+			let text = [];
+			$(".draggable").draggable({revert: true, 
+				start: function(){
+					text = [];
+				},
+				drag: function(){
+					let i = 0;
+					$('.let').each(function(index, item){
+						if(($(item).offset().top-20 < $(".draggable").offset().top &&  $(".draggable").offset().top <  $(item).offset().top+20) &&  ($(item).offset().left-20 < $(".draggable").offset().left &&  $(".draggable").offset().left <  $(item).offset().left+20) ){
+							$(item).css("background-color", "purple");
+							//console.log($(item).html());
+							let dataID = $(item).data("id");
+							let val = $(item).html();
+							let isAddable = false;
+							text.forEach(function(item){
+								if(parseInt(item.id) == parseInt(dataID)){
+									isAddable = true;
+								}
+							});
+							if(isAddable == false){
+								text.push({id:dataID, value:val});
+							}
+						}
+					});
+
+					let top = (window.innerHeight/$('.draggable').offset().top > 2)? 2 : window.innerHeight/$('.draggable').offset().top ;
+					let left = (window.innerWidth/$('.draggable').offset().left > 2) ? 2 : window.innerWidth/$('.draggable').offset().left;
+					if(yOffset >= $('.draggable').offset().top || xOffset <= $('.draggable').offset().left){
+						$(".navigation").css('box-shadow', ''+(left*-10)+'px '+(top*10)+'px 20px 3px #fff');
+					}
+					 if( yOffset <= $('.draggable').offset().top || xOffset >= $('.draggable').offset().left ){
+						$(".navigation").css('box-shadow', ''+(left*10)+'px '+(top*-10)+'px 20px 3px #fff');
+					}
+				},
+				stop: function(){
+					let answer = "";
+					text.forEach(function(item){
+						answer += item.value;
+					});
+					checkAnswer(gameData, level, answer);
+					$('.let').each(function(index, item){
+						$(item).css("background-color", "turquoise");
+					});
+					checkTrues(gameData);
+				}
+			});
+		}
+	</script>
+</head>
+<body>
+<div style="position: relative; width: 100%;">
+	<div id='stars'></div>
+	<div id='stars2'></div>
+	<div id='stars3'></div>
+</div>
+<div class="container">
+	<div class="column">
+		<div class="text">
+			
+		</div>
+	</div>
+
+	<div class="column">
+		<div class="navigation">
+				<i class="fas fa-hand-pointer draggable"></i>
+				<div class="randomLetter">
+				</div>
+		</div>
+	</div>
+
+</div>
+	<div id="animation"></div>
+	<audio id="soundEffect">
+		<source src="victory.wav" type="audio/wav">
+		Your browser does not support the audio element.
+	</audio>
+	<script type="text/javascript">
+			var konfeti = bodymovin.loadAnimation({
+			  container: document.getElementById('animation'), 
+			  path: 'animation.json',
+			  renderer: 'svg/canvas/html', 
+			  loop: false, 
+			  autoplay: false,
+			  rendererSettings: {
+			  	scaleMode: '100',
+			 	clearCanvas: false,
+			  	progressiveLoad: false, 
+			  	hideOnTransparent: true 
+			  }
+			});
+			konfeti.addEventListener('complete', function(){
+				$('#animation').css("display", "none");
+			})
+	</script>
+
+</body>
+</html>
